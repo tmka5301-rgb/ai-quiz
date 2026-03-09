@@ -1,0 +1,47 @@
+// prisma/schema.prisma
+// Define your database models
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  clerkId    String  @id @unique @default(uuid())
+  userName   String  @unique
+  isVerified Boolean @default(false)
+  email      String  @unique
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  articles  Article[]
+}
+
+model Article {
+  id      String @id @default(cuid())
+  title   String
+  content String
+  summary String
+  userId  String
+  user    User   @relation(fields: [userId], references: [clerkId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  quizzes   Quiz[]
+}
+
+model Quiz {
+  id        String   @id @default(cuid())
+  question  String
+  options   String[]
+  answer    String
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
