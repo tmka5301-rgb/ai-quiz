@@ -1,3 +1,3 @@
 import { NextRequest } from "next/server";
 
-export async function name(req: NextRequest) {}
+export async function POST(req: NextRequest) {}
