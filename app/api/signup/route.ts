@@ -1,6 +1,16 @@
-import { error } from "console";
 import { Webhook } from "svix";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+
+type Event = {
+  type: string;
+  data: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email_addresses: { email_address: string }[];
+  };
+};
 
 export async function POST(request: NextRequest) {
   const webhookSecret = process.env.CLERK_WEBHOOK_KEY;
@@ -21,6 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   const webhook = new Webhook(webhookSecret);
+
   const body = await request.text();
 
   try {
@@ -28,8 +39,26 @@ export async function POST(request: NextRequest) {
       "svix-id": svixId,
       "svix-timestamp": svixTimestamp,
       "svix-signature": svixSignature,
+    }) as Event;
+    if (event.type !== "user.created") {
+      return NextResponse.json({ error: "Ignore event" }, { status: 400 });
+    }
+    const { email_addresses, first_name, last_name, id } = event.data;
+
+    await prisma.user.create({
+      data: {
+        email: email_addresses[0].email_address,
+        userName: `${first_name} ${last_name}`,
+        clerkId: id,
+      },
     });
+    return NextResponse.json({ message: "Success" }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: "Invalid Headers" }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: `Invalid signatue ${error}`,
+      },
+      { status: 500 },
+    );
   }
 }
